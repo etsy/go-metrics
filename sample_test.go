@@ -361,3 +361,44 @@ func TestUniformSampleConcurrentUpdateCount(t *testing.T) {
 	}
 	quit <- struct{}{}
 }
+
+func TestWindowSample(t *testing.T) {
+	s := NewWindowSample()
+	for i := 1; i <= 1000; i++ {
+		s.Update(int64(i))
+	}
+
+	// All the values are in the sample.
+	if count := s.Count(); 1000 != count {
+		t.Errorf("s.Count(): 1000 != %v\n", count)
+	}
+	if size := s.Size(); 1000 != size {
+		t.Errorf("s.Size(): 1000 != %v\n", size)
+	}
+	max := s.Max()
+	if max < 1 || max > 1000 {
+		t.Errorf("s.Max(): not in [1, 1000]: %v\n", max)
+	}
+
+	snapshot := s.Snapshot()
+
+	// Making a snapshot clears the sample.
+	if count := s.Count(); 0 != count {
+		t.Errorf("s.Count(): 0 != %v\n", count)
+	}
+	if size := s.Size(); 0 != size {
+		t.Errorf("s.Size(): 0 != %v\n", size)
+	}
+
+	// All the values are in the snapshot.
+	if count := snapshot.Count(); 1000 != count {
+		t.Errorf("snapshot.Count(): 1000 != %v\n", count)
+	}
+	if size := snapshot.Size(); 1000 != size {
+		t.Errorf("snapshot.Size(): 1000 != %v\n", size)
+	}
+
+	if snapshotMax := snapshot.Max(); snapshotMax != max {
+		t.Errorf("snapshot.Max(): != s.Max(): %v != %v", max, snapshotMax)
+	}
+}
